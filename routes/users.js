@@ -3,6 +3,7 @@ var mysql = require('../config/mysql');
 var bcrypt = require('bcrypt');
 var jwt = require('jsonwebtoken');
 var checkAuth = require('../middleware/check-auth');
+var checkRole = require('../middleware/check-role');
 var router = express.Router();
 
 // user register
@@ -99,7 +100,7 @@ router.post('/token', function (req, res) {
 });
 
 // get user profile
-router.get('/:id', checkAuth, function (req, res) {
+router.get('/:id', function (req, res) {
   mysql.query(
     'SELECT id, email, name FROM users WHERE id = ?',
     [req.params.id],

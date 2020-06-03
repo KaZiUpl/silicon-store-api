@@ -4,7 +4,7 @@
  */
 module.exports = function (requiredRole) {
   return function (req, res, next) {
-    userRole = req.headers.userData.role;
+    userRole = req.userData.role;
     if (userRole != requiredRole) {
       return res.status(403).json({ message: 'Forbidden' });
     }
