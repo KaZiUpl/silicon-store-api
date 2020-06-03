@@ -2,6 +2,7 @@ var express = require('express');
 var mysql = require('../config/mysql');
 var bcrypt = require('bcrypt');
 var jwt = require('jsonwebtoken');
+var checkAuth = require('../middleware/check-auth');
 var router = express.Router();
 
 // user register
@@ -12,20 +13,17 @@ router.post('/', function (req, res) {
     [req.body.email],
     (err, fields, rows) => {
       if (err) {
-        res.sendStatus(500);
-        return;
+        return res.sendStatus(500);
       } else {
         if (fields.length > 0) {
-          res.status(400).json({
+          return res.status(400).json({
             message: 'Mail taken',
           });
-          return;
         }
         // create password hash and add new user to database
         bcrypt.hash(req.body.password, 10, (err, hash) => {
           if (err) {
-            res.sendStatus(500);
-            return;
+            return res.sendStatus(500);
           } else {
             // create new user
             mysql.query(
@@ -33,13 +31,11 @@ router.post('/', function (req, res) {
               [req.body.email, req.body.name, hash, 'Customer'],
               (err, rows, fields) => {
                 if (err) {
-                  res.sendStatus(500);
-                  return;
+                  return res.sendStatus(500);
                 } else {
-                  res.status(201).json({
+                  return res.status(201).json({
                     message: 'Customer created',
                   });
-                  return;
                 }
               }
             );
@@ -58,10 +54,9 @@ router.post('/token', function (req, res) {
     (err, rows, fields) => {
       // user doesn't exists
       if (rows.length < 1) {
-        res.status(401).json({
+        return res.status(401).json({
           message: 'Bad credentials',
         });
-        return;
       } else {
         user = rows[0];
         console.log(user);
@@ -69,10 +64,9 @@ router.post('/token', function (req, res) {
         // compare passwords
         bcrypt.compare(req.body.password, user.password, (err, result) => {
           if (err) {
-            res.status(401).json({
+            return res.status(401).json({
               message: 'Bad credentials',
             });
-            return;
           } else {
             //success login
             if (result) {
@@ -87,13 +81,13 @@ router.post('/token', function (req, res) {
                   expiresIn: '1h',
                 }
               );
-              res.status(200).json({
+              return res.status(200).json({
                 token: token,
                 id: user.id,
-                mail: user.email
+                mail: user.email,
               });
             } else {
-              res.status(401).json({
+              return res.status(401).json({
                 message: 'Bad credentials',
               });
             }
@@ -105,12 +99,15 @@ router.post('/token', function (req, res) {
 });
 
 // get user profile
-router.get('/:id', function (req, res) {
+router.get('/:id', checkAuth, function (req, res) {
   mysql.query(
     'SELECT id, email, name FROM users WHERE id = ?',
     [req.params.id],
     (err, rows, fields) => {
-      res.json(rows);
+      if (rows.length < 1) {
+        return res.sendStatus(404);
+      }
+      return res.status(200).json(rows);
     }
   );
 });
@@ -121,7 +118,7 @@ router.get('/:id/orders', function (req, res) {
     'SELECT * from orders WHERE user_id = ?',
     [req.params.id],
     (err, rows, fields) => {
-      res.json(rows);
+      return res.json(rows);
     }
   );
 });
@@ -132,7 +129,7 @@ router.get('/:id/cart', function (req, res) {
     'SELECT * FROM cart_items WHERE user_id = ?',
     [req.params.id],
     (err, rows, fields) => {
-      res.json(rows);
+      return res.json(rows);
     }
   );
 });
