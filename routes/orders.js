@@ -1,5 +1,6 @@
 var express = require('express');
 var mysql = require('../config/mysql');
+var checkAuth = require('../middleware/check-auth');
 var router = express.Router();
 
 router.use(function (req, res, next) {
@@ -12,7 +13,10 @@ router.post('/', function (req, res) {
 });
 
 // get order data
-router.get('/:id', function (req, res) {
+router.get('/:id', checkAuth, function (req, res) {
+  if(req.params.id != req.userData.id) {
+    return res.sendStatus(403);
+  }
   mysql.query(
     'SELECT * FROM orders WHERE id=' + req.params.id,
     (err, rows, fields) => {
@@ -27,6 +31,9 @@ router.get('/:id', function (req, res) {
 
 // get order items
 router.get('/:id/items', function (req, res) {
+  if(req.params.id != req.userData.id) {
+    return res.sendStatus(403);
+  }
   mysql.query(
     'SELECT * FROM order_items WHERE order_id=' + req.params.id,
     (err, rows, fields) => {

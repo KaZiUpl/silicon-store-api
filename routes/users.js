@@ -3,7 +3,6 @@ var mysql = require('../config/mysql');
 var bcrypt = require('bcrypt');
 var jwt = require('jsonwebtoken');
 var checkAuth = require('../middleware/check-auth');
-var checkRole = require('../middleware/check-role');
 var router = express.Router();
 
 // user register
@@ -100,10 +99,13 @@ router.post('/token', function (req, res) {
 });
 
 // get user profile
-router.get('/:id', function (req, res) {
+router.get('/:id', checkAuth, function (req, res) {
+  if(req.params.id != req.userData.id) {
+    return res.sendStatus(403);
+  }
   mysql.query(
     'SELECT id, email, name FROM users WHERE id = ?',
-    [req.params.id],
+    [req.userData.id],
     (err, rows, fields) => {
       if (rows.length < 1) {
         return res.sendStatus(404);
@@ -114,21 +116,13 @@ router.get('/:id', function (req, res) {
 });
 
 // getting order list
-router.get('/:id/orders', function (req, res) {
+router.get('/:id/orders', checkAuth, function (req, res) {
+  if(req.params.id != req.userData.id) {
+    return res.sendStatus(403);
+  }
   mysql.query(
     'SELECT * from orders WHERE user_id = ?',
-    [req.params.id],
-    (err, rows, fields) => {
-      return res.json(rows);
-    }
-  );
-});
-
-//get shopping cart
-router.get('/:id/cart', function (req, res) {
-  mysql.query(
-    'SELECT * FROM cart_items WHERE user_id = ?',
-    [req.params.id],
+    [req.userData.id],
     (err, rows, fields) => {
       return res.json(rows);
     }
