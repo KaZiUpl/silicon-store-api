@@ -1,58 +1,15 @@
 var express = require('express');
-var mysql = require('../config/mysql');
 var router = express.Router();
 
+var CategoriesController = require('../controllers/categories');
+
 // get all categories
-router.get('/', function (req, res) {
-  mysql.query('SELECT * FROM categories', (err, rows, fields) => {
-    if (err) {
-      return res.sendStatus(500);
-    }
-    return res.status(200).json(rows);
-  });
-});
-
+router.get('/', CategoriesController.getAllCategories);
 // get main categories
-router.get('/main-categories', function (req, res) {
-  mysql.query(
-    'SELECT * FROM categories WHERE parent_id IS NULL',
-    (err, rows, fields) => {
-      if (err) {
-        return res.sendStatus(500);
-      }
-      return res.status(200).json(rows);
-    }
-  );
-});
-
+router.get('/main-categories', CategoriesController.getMainCategories);
 // get category
-router.get('/:id', function (req, res) {
-  mysql.query(
-    'SELECT * FROM categories WHERE id=' + req.params.id,
-    (err, rows, fields) => {
-      if (err) {
-        return res.sendStatus(500);
-      }
-      if (rows.length == 0) {
-        return res.status(200).json(rows[0]);
-      } else {
-        return res.sendStatus(404);
-      }
-    }
-  );
-});
-
-// get category's children
-router.get('/:id/child-categories', function (req, res) {
-  mysql.query(
-    'SELECT * FROM categories WHERE parent_id=' + req.params.id,
-    (err, rows, fields) => {
-      if (err) {
-        return res.sendStatus(500);
-      }
-      return res.status(200).json(rows);
-    }
-  );
-});
+router.get('/:id', CategoriesController.getCategory);
+// get category's children categories
+router.get('/:id/child-categories', CategoriesController.getChildrenCategories);
 
 module.exports = router;

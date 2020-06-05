@@ -1,0 +1,108 @@
+var mysql = require('../config/mysql');
+var bcrypt = require('bcrypt');
+var jwt = require('jsonwebtoken');
+
+exports.register = function (req, res) {
+    // check whether email is taken
+    mysql.query(
+      'SELECT email FROM users where email = ?',
+      [req.body.email],
+      (err, fields, rows) => {
+        if (err) {
+          return res.sendStatus(500);
+        } else {
+          if (fields.length > 0) {
+            return res.status(400).json({
+              message: 'Mail taken',
+            });
+          }
+          // create password hash and add new user to database
+          bcrypt.hash(req.body.password, 10, (err, hash) => {
+            if (err) {
+              return res.sendStatus(500);
+            } else {
+              // create new user
+              mysql.query(
+                'INSERT INTO users(email, name, password, role) VALUES(?,?,?,?)',
+                [req.body.email, req.body.name, hash, 'Customer'],
+                (err, rows, fields) => {
+                  if (err) {
+                    return res.sendStatus(500);
+                  } else {
+                    return res.sendStatus(201);
+                  }
+                }
+              );
+            }
+          });
+        }
+      }
+    );
+  }
+
+  exports.login = function (req, res) {
+    mysql.query(
+      'SELECT id,email, password, role from users WHERE email = ?',
+      [req.body.email],
+      (err, rows, fields) => {
+        // user doesn't exists
+        if (rows.length < 1) {
+          return res.status(401).json({
+            message: 'Bad credentials',
+          });
+        } else {
+          user = rows[0];
+          console.log(user);
+  
+          // compare passwords
+          bcrypt.compare(req.body.password, user.password, (err, result) => {
+            if (err) {
+              return res.status(401).json({
+                message: 'Bad credentials',
+              });
+            } else {
+              //success login
+              if (result) {
+                const token = jwt.sign(
+                  {
+                    email: user.email,
+                    id: user.id,
+                    role: user.role,
+                  },
+                  process.env.JWT_SECRET,
+                  {
+                    expiresIn: '1h',
+                  }
+                );
+                return res.status(200).json({
+                  token: token,
+                  id: user.id,
+                  mail: user.email,
+                });
+              } else {
+                return res.status(401).json({
+                  message: 'Bad credentials',
+                });
+              }
+            }
+          });
+        }
+      }
+    );
+  }
+
+  exports.getProfile = function (req, res) {
+    if(req.params.id != req.userData.id) {
+      return res.sendStatus(403);
+    }
+    mysql.query(
+      'SELECT id, email, name FROM users WHERE id = ?',
+      [req.userData.id],
+      (err, rows, fields) => {
+        if (rows.length < 1) {
+          return res.sendStatus(404);
+        }
+        return res.status(200).json(rows);
+      }
+    );
+  }
