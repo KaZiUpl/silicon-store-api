@@ -57,6 +57,10 @@ router.post('/', checkAuth, function (req, res) {
             return res.sendStatus(500);
           });
         }
+        if(rows.length == 0) {
+          res.statusMessage = 'You have no items in the cart';
+          return res.sendStatus(400);
+        }
         orderItems = rows;
 
         orderItems.forEach((orderItem) => {
@@ -145,12 +149,17 @@ router.post('/', checkAuth, function (req, res) {
 
 // get order data
 router.get('/:id', checkAuth, function (req, res) {
-  if (req.params.id != req.userData.id) {
-    return res.sendStatus(403);
-  }
+  // select requested order
   mysql.query(
-    'SELECT * FROM orders WHERE id=' + req.params.id,
+    'SELECT * FROM orders WHERE id = ' + req.params.id,
     (err, rows, fields) => {
+      if(err) { 
+        return res.sendStatus(500);
+      }
+      // check order's recipient
+      if(rows[0].user_id != req.userData.id) {
+        return res.sendStatus(403);
+      }
       if (rows.length > 0) {
         res.json(rows[0]);
       } else {
@@ -158,6 +167,7 @@ router.get('/:id', checkAuth, function (req, res) {
       }
     }
   );
+  
 });
 
 // get order items
