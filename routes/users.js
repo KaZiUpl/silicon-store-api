@@ -33,9 +33,7 @@ router.post('/', function (req, res) {
                 if (err) {
                   return res.sendStatus(500);
                 } else {
-                  return res.status(201).json({
-                    message: 'Customer created',
-                  });
+                  return res.sendStatus(201);
                 }
               }
             );
