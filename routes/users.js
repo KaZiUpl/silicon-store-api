@@ -1,11 +1,20 @@
 var express = require('express');
 var checkAuth = require('../middleware/check-auth');
+const { check } = require('express-validator');
 var router = express.Router();
 
 var UsersController = require('../controllers/users');
 
 // user register
-router.post('/', UsersController.register);
+router.post(
+  '/',
+  [
+    check('email').isEmail().withMessage('Invalid email'),
+    check('name').exists().withMessage('Name is required'),
+    check('password').exists().withMessage('Password is required'),
+  ],
+  UsersController.register
+);
 
 // user login
 router.post('/token', UsersController.login);
