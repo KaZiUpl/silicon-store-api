@@ -1,4 +1,5 @@
 var mysql = require('../config/mysql');
+const { validationResult } = require('express-validator');
 
 exports.getAll = function (req, res) {
   mysql.query(
@@ -35,6 +36,12 @@ exports.getOrder = function (req, res) {
 };
 
 exports.postOrder = function (req, res) {
+  //input error handling
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({ errors: errors.array() });
+  }
+
   var created_at = new Date();
   var orderId;
   mysql.beginTransaction(function (err) {
@@ -184,8 +191,13 @@ exports.getOrderItems = function (req, res) {
     }
   );
   mysql.query(
-    'SELECT * FROM order_items WHERE order_id=' + req.params.id,
+    'SELECT * FROM order_items WHERE order_id = ?',
+    req.params.id,
     (err, rows, fields) => {
+      if(err)
+      {
+        return res.sendStatus(500);
+      }
       res.json(rows);
     }
   );

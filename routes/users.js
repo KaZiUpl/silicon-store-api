@@ -17,10 +17,21 @@ router.post(
 );
 
 // user login
-router.post('/token', UsersController.login);
+router.post(
+  '/token',
+  [
+    check('email').isEmail().withMessage('Invalid email'),
+    check('password').exists().withMessage('Password is required'),
+  ],
+  UsersController.login
+);
 
 //get new access token
-router.post('/refresh-token', UsersController.getRefreshToken);
+router.post(
+  '/refresh-token',
+  [check('refresh_token').exists().withMessage('Refresh token is required')],
+  UsersController.getRefreshToken
+);
 
 // get user profile
 router.get('/:id', checkAuth, UsersController.getProfile);

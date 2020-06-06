@@ -1,6 +1,13 @@
 var mysql = require('../config/mysql');
+const { validationResult } = require('express-validator');
 
 exports.patchCartItem = function (req, res) {
+  //input error handling
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({ errors: errors.array() });
+  }
+
   // check if item is already in the cart
   mysql.query(
     'SELECT * from cart_items WHERE user_id = ? AND item_id = ?',

@@ -5,6 +5,7 @@ const { validationResult } = require('express-validator');
 var { v4: uuidv4 } = require('uuid');
 
 exports.register = function (req, res) {
+  //input error handling
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(422).json({ errors: errors.array() });
@@ -68,7 +69,6 @@ exports.register = function (req, res) {
                       [rows.insertId, refresh_token],
                       (err, rows, fields) => {
                         if (err) {
-                          console.log(err);
                           mysql.rollback(function () {
                             return res.sendStatus(500);
                           });
@@ -82,7 +82,6 @@ exports.register = function (req, res) {
 
             mysql.commit(function (err) {
               if (err) {
-                console.log(err);
                 return res.sendStatus(500);
               }
             });
@@ -95,6 +94,12 @@ exports.register = function (req, res) {
 };
 
 exports.login = function (req, res) {
+  //input error handling
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({ errors: errors.array() });
+  }
+
   mysql.query(
     'SELECT id,email, password, role from users WHERE email = ?',
     [req.body.email],
@@ -106,7 +111,6 @@ exports.login = function (req, res) {
         });
       } else {
         user = rows[0];
-        console.log(user);
 
         // compare passwords
         bcrypt.compare(req.body.password, user.password, (err, result) => {
@@ -133,11 +137,10 @@ exports.login = function (req, res) {
                 id: user.id,
                 mail: user.email,
               });
-            } else {
-              return res.status(401).json({
-                message: 'Bad credentials',
-              });
             }
+            res.status(401).json({
+              message: 'Bad credentials',
+            });
           }
         });
       }
@@ -145,6 +148,12 @@ exports.login = function (req, res) {
   );
 };
 exports.getRefreshToken = function (req, res) {
+  //input error handling
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({ errors: errors.array() });
+  }
+
   //get refresh token from database
   mysql.query(
     'SELECT user_id, refresh_token FROM refresh_tokens WHERE refresh_token = ? AND user_id = ?',
@@ -167,7 +176,7 @@ exports.getRefreshToken = function (req, res) {
           expiresIn: '1h',
         }
       );
-      return res.status(200).json({ token: token });
+      res.status(200).json({ token: token });
     }
   );
 };
@@ -183,7 +192,7 @@ exports.getProfile = function (req, res) {
       if (rows.length < 1) {
         return res.sendStatus(404);
       }
-      return res.status(200).json(rows);
+      res.status(200).json(rows);
     }
   );
 };

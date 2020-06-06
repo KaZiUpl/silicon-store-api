@@ -1,6 +1,13 @@
 var mysql = require('../config/mysql');
+const { validationResult } = require('express-validator');
 
 exports.newComment = function (req, res) {
+  //input error handling
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({ errors: errors.array() });
+  }
+
   var created_at = new Date();
   mysql.query(
     'SELECT item_id FROM comments WHERE item_id = ? AND user_id = ?',
