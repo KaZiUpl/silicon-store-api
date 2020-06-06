@@ -101,7 +101,7 @@ exports.login = function (req, res) {
   }
 
   mysql.query(
-    'SELECT id,email, password, role from users WHERE email = ?',
+    'SELECT id, email, password, role, refresh_token FROM users INNER JOIN refresh_tokens ON users.id = refresh_tokens.user_id WHERE email = ?',
     [req.body.email],
     (err, rows, fields) => {
       // user doesn't exists
@@ -136,6 +136,7 @@ exports.login = function (req, res) {
                 token: token,
                 id: user.id,
                 mail: user.email,
+                refresh_token: user.refresh_token
               });
             }
             res.status(401).json({
@@ -167,9 +168,9 @@ exports.getRefreshToken = function (req, res) {
       }
       const token = jwt.sign(
         {
-          email: user.email,
-          id: user.id,
-          role: user.role,
+          email: req.userData.email,
+          id: req.userData.id,
+          role: req.userData.role,
         },
         process.env.JWT_SECRET,
         {

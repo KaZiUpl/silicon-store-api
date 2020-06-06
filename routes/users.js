@@ -28,7 +28,7 @@ router.post(
 
 //get new access token
 router.post(
-  '/refresh-token',
+  '/refresh-token', checkAuth,
   [check('refresh_token').exists().withMessage('Refresh token is required')],
   UsersController.getRefreshToken
 );
