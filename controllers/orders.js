@@ -36,7 +36,7 @@ exports.getOrder = function (req, res) {
 
 exports.postOrder = function (req, res) {
   var created_at = new Date();
-  var oderId;
+  var orderId;
   mysql.beginTransaction(function (err) {
     if (err) {
       throw err;
@@ -104,7 +104,7 @@ exports.postOrder = function (req, res) {
                 'UPDATE amounts SET amount = amount - ? WHERE item_id = ?',
                 [orderItem.amount, orderItem.id],
                 (err, result, fields) => {
-                  if (error) {
+                  if (err) {
                     mysql.rollback(function () {
                       return res.sendStatus(500);
                     });
@@ -116,8 +116,6 @@ exports.postOrder = function (req, res) {
                 'SELECT price FROM items WHERE id = ?',
                 [orderItem.item_id],
                 (err, price, fields) => {
-                  console.log('got order item price');
-
                   if (err || price.length == 0) {
                     mysql.rollback(function () {
                       return res.sendStatus(500);
@@ -133,7 +131,7 @@ exports.postOrder = function (req, res) {
                       orderItem.amount * price[0].price,
                     ],
                     (err, result, fields) => {
-                      if (this.err) {
+                      if (err) {
                         mysql.rollback(function () {
                           return res.sendStatus(500);
                         });
