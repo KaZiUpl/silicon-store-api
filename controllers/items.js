@@ -19,7 +19,7 @@ exports.getAllItems = function (req, res) {
     mysql.query(
       'SELECT id, name, price, short_specification, specification, description, photo, amount FROM items INNER JOIN amounts ON (items.id = amounts.item_id) WHERE amount > 0',
       (err, rows, fields) => {
-        if (err) {
+        if (err) {         
           return res.sendStatus(500);
         }
         return res.status(200).json(rows);

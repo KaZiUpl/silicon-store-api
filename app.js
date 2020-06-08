@@ -7,6 +7,8 @@ var cors = require('cors');
 var app = express();
 var port = process.env.PORT || 3000;
 
+
+
 var items = require('./routes/items');
 var users = require('./routes/users');
 var orders = require('./routes/orders');
@@ -19,6 +21,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(cors());
 
+app.use('/images', express.static(__dirname + '/public/img'));
 app.use('/items', items);
 app.use('/users', users);
 app.use('/orders', orders);
@@ -45,4 +48,6 @@ app.use((error, req, res, next) => {
 
 app.listen(port, () => {
   console.log('Server is up and listening on port ' + port + '...');
+  console.log(__dirname);
+  
 });
