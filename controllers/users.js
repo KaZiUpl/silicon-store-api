@@ -134,9 +134,7 @@ exports.login = function (req, res) {
               );
               return res.status(200).json({
                 token: token,
-                id: user.id,
-                mail: user.email,
-                refresh_token: user.refresh_token
+                refresh_token: user.refresh_token,
               });
             }
             res.status(401).json({
@@ -148,6 +146,24 @@ exports.login = function (req, res) {
     }
   );
 };
+
+exports.logout = function (req, res) {
+  let newRefreshToken = uuidv4();
+  // create new refresh token
+  mysql.query(
+    'UPDATE refresh_tokens SET refresh_token = ? WHERE user_id = ?',
+    [newRefreshToken, req.userData.id],
+    (err, rows, fields) => {
+      if (err) {
+        mysql.rollback(function () {
+          return res.sendStatus(500);
+        });
+      }
+      res.sendStatus(200);
+    }
+  );
+};
+
 exports.getRefreshToken = function (req, res) {
   //input error handling
   const errors = validationResult(req);

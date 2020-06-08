@@ -26,6 +26,12 @@ router.post(
   UsersController.login
 );
 
+//user logout
+router.post('/logout', checkAuth, [
+  check('refresh_token').exists().withMessage('Refresh token is required'),
+  UsersController.logout
+])
+
 //get new access token
 router.post(
   '/refresh-token', checkAuth,
