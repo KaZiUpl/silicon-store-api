@@ -22,6 +22,9 @@ exports.getAllItems = function (req, res) {
         if (err) {         
           return res.sendStatus(500);
         }
+        rows.forEach(element => {
+          element.photo = '/images/'+element.photo;
+        });
         return res.status(200).json(rows);
       }
     );
