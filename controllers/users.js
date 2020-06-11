@@ -62,11 +62,10 @@ exports.register = function (req, res) {
                       });
                     }
 
-                    // create refresh token
-                    var refresh_token = uuidv4();
+                    // create refresh token row
                     mysql.query(
                       'INSERT INTO refresh_tokens(user_id, refresh_token) VALUES(?,?)',
-                      [rows.insertId, refresh_token],
+                      [rows.insertId, ''],
                       (err, rows, fields) => {
                         if (err) {
                           mysql.rollback(function () {
@@ -100,8 +99,9 @@ exports.login = function (req, res) {
     return res.status(422).json({ errors: errors.array() });
   }
 
+  // check provided credentials
   mysql.query(
-    'SELECT id, email, password, role, refresh_token FROM users INNER JOIN refresh_tokens ON users.id = refresh_tokens.user_id WHERE email = ?',
+    'SELECT id, email, password, role FROM users WHERE email = ?',
     [req.body.email],
     (err, rows, fields) => {
       // user doesn't exists
@@ -110,10 +110,12 @@ exports.login = function (req, res) {
           message: 'Bad credentials',
         });
       } else {
+        //login data correct
         user = rows[0];
 
         // compare passwords
         bcrypt.compare(req.body.password, user.password, (err, result) => {
+          // handle incorrect password
           if (err) {
             return res.status(401).json({
               message: 'Bad credentials',
@@ -121,25 +123,38 @@ exports.login = function (req, res) {
           } else {
             //success login
             if (result) {
-              const token = jwt.sign(
-                {
-                  email: user.email,
-                  id: user.id,
-                  role: user.role,
-                },
-                process.env.JWT_SECRET,
-                {
-                  expiresIn: '1h',
+              //generate refresh token and insert it into database
+              let new_refresh_token = uuidv4();
+              mysql.query(
+                'UPDATE refresh_tokens SET refresh_token = ? WHERE user_id = ?',
+                [new_refresh_token, user.id],
+                (err, rows) => {
+                  if (err) {
+                    return res.sendStatus(500);
+                  }
+                  //generate access token
+                  const token = jwt.sign(
+                    {
+                      email: user.email,
+                      id: user.id,
+                      role: user.role,
+                    },
+                    process.env.JWT_SECRET,
+                    {
+                      expiresIn: '1h',
+                    }
+                  );
+
+                  return res.status(200).json({
+                    token: token,
+                    refresh_token: new_refresh_token,
+                    id: user.id,
+                    email: user.email,
+                    role: user.role,
+                  });
                 }
               );
-              return res.status(200).json({
-                token: token,
-                refresh_token: user.refresh_token,
-              });
             }
-            res.status(401).json({
-              message: 'Bad credentials',
-            });
           }
         });
       }
@@ -147,22 +162,7 @@ exports.login = function (req, res) {
   );
 };
 
-exports.logout = function (req, res) {
-  let newRefreshToken = uuidv4();
-  // create new refresh token
-  mysql.query(
-    'UPDATE refresh_tokens SET refresh_token = ? WHERE user_id = ?',
-    [newRefreshToken, req.userData.id],
-    (err, rows, fields) => {
-      if (err) {
-        return res.sendStatus(500);
-      }
-      res.sendStatus(200);
-    }
-  );
-};
-
-exports.getRefreshToken = function (req, res) {
+exports.refreshToken = function (req, res) {
   //input error handling
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -177,9 +177,11 @@ exports.getRefreshToken = function (req, res) {
       if (err) {
         return res.sendStatus(500);
       }
+      // user is trying to get someone else access token
       if (rows.length == 0) {
-        return res.sendStatus(400);
+        return res.sendStatus(404);
       }
+      //create new access token
       const token = jwt.sign(
         {
           email: req.userData.email,
@@ -191,7 +193,33 @@ exports.getRefreshToken = function (req, res) {
           expiresIn: '1h',
         }
       );
-      res.status(200).json({ token: token });
+      res.status(200).json({
+        token: token,
+        refresh_token: req.body.refresh_token,
+        id: req.userData.id,
+        email: req.userData.email,
+        role: req.userData.role,
+      });
+    }
+  );
+};
+
+exports.logout = function (req, res) {
+  //input error handling
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({ errors: errors.array() });
+  }
+
+  // delete refresh token from database
+  mysql.query(
+    'UPDATE refresh_tokens SET refresh_token = "" WHERE user_id = ?',
+    req.userData.id,
+    (err, rows, fields) => {
+      if (err) {
+        return res.sendStatus(500);
+      }
+      res.status(200).json();
     }
   );
 };

@@ -36,7 +36,9 @@ app.use((req, res, next) => {
 
 // catching errors
 app.use((error, req, res, next) => {
-  res.sendStatus(error.status || 500);
+  console.log(error);
+  
+  return res.sendStatus(error.status || 500);
 });
 
 app.listen(port, () => {

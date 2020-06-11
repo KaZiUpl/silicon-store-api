@@ -33,7 +33,7 @@ exports.getAllItems = function (req, res) {
 
 exports.getItem = function (req, res) {
   mysql.query(
-    'SELECT * FROM items INNER JOIN amounts ON (items.id = amounts.item_id) WHERE id= ? ',
+    'SELECT * FROM items INNER JOIN amounts ON (items.id = amounts.item_id) WHERE id= ?',
     [req.params.id],
     (err, rows, fields) => {
       if (err) {
@@ -50,10 +50,11 @@ exports.getItem = function (req, res) {
 
 exports.getItemComments = function (req, res) {
   mysql.query(
-    'SELECT * FROM comments WHERE item_id=' + req.params.id,
+    'SELECT comments.id, user_id, item_id, text, created_at, updated_at, name as author FROM comments INNER JOIN users ON (comments.user_id = users.id) WHERE item_id = ' + req.params.id,
     (err, rows, fields) => {
       if (err) {
-        return res.sendStatus(500);
+        res.sendStatus(500);
+        throw err;
       }
       res.status(200).json(rows);
     }
