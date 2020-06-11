@@ -155,9 +155,7 @@ exports.logout = function (req, res) {
     [newRefreshToken, req.userData.id],
     (err, rows, fields) => {
       if (err) {
-        mysql.rollback(function () {
-          return res.sendStatus(500);
-        });
+        return res.sendStatus(500);
       }
       res.sendStatus(200);
     }

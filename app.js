@@ -7,8 +7,6 @@ var cors = require('cors');
 var app = express();
 var port = process.env.PORT || 3000;
 
-
-
 var items = require('./routes/items');
 var users = require('./routes/users');
 var orders = require('./routes/orders');
@@ -38,16 +36,9 @@ app.use((req, res, next) => {
 
 // catching errors
 app.use((error, req, res, next) => {
-  res.status(error.status || 500);
-  res.json({
-    error: {
-      message: error.message,
-    },
-  });
+  res.sendStatus(error.status || 500);
 });
 
 app.listen(port, () => {
   console.log('Server is up and listening on port ' + port + '...');
-  console.log(__dirname);
-  
 });

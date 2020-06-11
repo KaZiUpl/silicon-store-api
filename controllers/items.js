@@ -19,11 +19,11 @@ exports.getAllItems = function (req, res) {
     mysql.query(
       'SELECT id, name, price, short_specification, specification, description, photo, amount FROM items INNER JOIN amounts ON (items.id = amounts.item_id) WHERE amount > 0',
       (err, rows, fields) => {
-        if (err) {         
+        if (err) {
           return res.sendStatus(500);
         }
-        rows.forEach(element => {
-          element.photo = '/images/'+element.photo;
+        rows.forEach((element) => {
+          element.photo = 'http://localhost:3000/images/' + element.photo;
         });
         return res.status(200).json(rows);
       }
@@ -33,7 +33,7 @@ exports.getAllItems = function (req, res) {
 
 exports.getItem = function (req, res) {
   mysql.query(
-    'SELECT * FROM items WHERE id= ? ',
+    'SELECT * FROM items INNER JOIN amounts ON (items.id = amounts.item_id) WHERE id= ? ',
     [req.params.id],
     (err, rows, fields) => {
       if (err) {
@@ -42,6 +42,7 @@ exports.getItem = function (req, res) {
       if (rows.length == 0) {
         return res.sendStatus(404);
       }
+      rows[0].photo = 'http://localhost:3000/images/' + rows[0].photo;
       res.status(200).json(rows[0]);
     }
   );
