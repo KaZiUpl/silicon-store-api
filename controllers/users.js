@@ -91,6 +91,9 @@ exports.login = function (req, res) {
     'SELECT id, email, password, role, api_key FROM users WHERE email = ?',
     [req.body.email],
     (err, rows, fields) => {
+      if(err) {
+        return res.sendStatus(500);
+      }
       // user doesn't exists
       if (rows.length < 1) {
         return res.status(401).json({
@@ -111,16 +114,45 @@ exports.login = function (req, res) {
             console.log(result);
             //success login
             if (result) {
-              // create api key
-              const apiKey = uuidv4();
+              //check for existing api key
               mysql.query(
-                'UPDATE users SET api_key = ? WHERE id = ?',
-                [apiKey, user.id],
+                'SELECT api_key FROM users WHERE id = ?',
+                user.id,
                 (err, rows) => {
                   if (err || rows.length == 0) {
                     return res.sendStatus(500);
                   }
-                  res.status(200).json({ api_key: apiKey });
+                  //if key exists
+                  if (rows[0].api_key != '') {
+                    return res
+                      .status(200)
+                      .json({
+                        api_key: rows[0].api_key,
+                        id: user.id,
+                        email: user.email,
+                        role: user.role,
+                      });
+                  } else {
+                    // create api key
+                    const apiKey = uuidv4();
+                    mysql.query(
+                      'UPDATE users SET api_key = ? WHERE id = ?',
+                      [apiKey, user.id],
+                      (err, rows) => {
+                        if (err || rows.length == 0) {
+                          return res.sendStatus(500);
+                        }
+                        res
+                          .status(200)
+                          .json({
+                            api_key: apiKey,
+                            id: user.id,
+                            email: user.email,
+                            role: user.role,
+                          });
+                      }
+                    );
+                  }
                 }
               );
             }
@@ -152,13 +184,13 @@ exports.logout = function (req, res) {
 };
 
 exports.getProfile = function (req, res) {
-  if (req.params.id != req.userData.id) {
-    return res.sendStatus(403);
-  }
   mysql.query(
     'SELECT id, email, name FROM users WHERE id = ?',
     [req.userData.id],
     (err, rows, fields) => {
+      if (err) {
+        return res.sendStatus(500);
+      }
       if (rows.length < 1) {
         return res.sendStatus(404);
       }
