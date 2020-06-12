@@ -26,18 +26,10 @@ router.post(
   UsersController.login
 );
 
-//get new access token
-router.post(
-  '/refresh-token', checkAuth,
-  [check('refresh_token').exists().withMessage('Refresh token is required')],
-  UsersController.refreshToken
-);
-
 //user logout
-router.post('/logout', checkAuth, [
-  check('token').exists().withMessage('Token is required'),
+router.post('/logout', checkAuth,
   UsersController.logout
-])
+)
 
 // get user profile
 router.get('/profile', checkAuth, UsersController.getProfile);
