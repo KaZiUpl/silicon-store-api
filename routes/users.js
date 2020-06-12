@@ -40,6 +40,6 @@ router.post('/logout', checkAuth, [
 ])
 
 // get user profile
-router.get('/:id', checkAuth, UsersController.getProfile);
+router.get('/profile', checkAuth, UsersController.getProfile);
 
 module.exports = router;

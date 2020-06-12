@@ -133,16 +133,18 @@ exports.login = function (req, res) {
                     return res.sendStatus(500);
                   }
                   //generate access token
+                  const timestamp = Math.floor(Date.now() / 1000) + 15;
+                  const exp_date = new Date(timestamp*1000);
+                  console.log(exp_date);
+                  
                   const token = jwt.sign(
                     {
                       email: user.email,
                       id: user.id,
                       role: user.role,
+                      exp: timestamp
                     },
-                    process.env.JWT_SECRET,
-                    {
-                      expiresIn: '1h',
-                    }
+                    process.env.JWT_SECRET
                   );
 
                   return res.status(200).json({
@@ -151,6 +153,7 @@ exports.login = function (req, res) {
                     id: user.id,
                     email: user.email,
                     role: user.role,
+                    exp: exp_date
                   });
                 }
               );
@@ -182,16 +185,16 @@ exports.refreshToken = function (req, res) {
         return res.sendStatus(404);
       }
       //create new access token
+      const timestamp = Math.floor(Date.now() / 1000) + 15;
+      const exp_date = new Date(timestamp*1000);
       const token = jwt.sign(
         {
           email: req.userData.email,
           id: req.userData.id,
           role: req.userData.role,
+          exp: timestamp,
         },
-        process.env.JWT_SECRET,
-        {
-          expiresIn: '1h',
-        }
+        process.env.JWT_SECRET
       );
       res.status(200).json({
         token: token,
@@ -199,6 +202,7 @@ exports.refreshToken = function (req, res) {
         id: req.userData.id,
         email: req.userData.email,
         role: req.userData.role,
+        exp: exp_date,
       });
     }
   );
