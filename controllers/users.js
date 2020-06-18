@@ -191,10 +191,10 @@ exports.getProfile = function (req, res) {
       if (err) {
         return res.sendStatus(500);
       }
-      if (rows.length < 1) {
+      if (rows.length == 0) {
         return res.sendStatus(404);
       }
-      res.status(200).json(rows);
+      res.status(200).json(rows[[0]]);
     }
   );
 };

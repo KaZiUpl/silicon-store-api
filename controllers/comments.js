@@ -34,7 +34,7 @@ exports.newComment = function (req, res) {
           if (err) {
             return res.sendStatus(500);
           }
-          return res.sendStatus(201);
+          return res.status(201).json({message: "Comment added"});
         }
       );
     }

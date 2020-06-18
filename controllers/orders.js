@@ -22,6 +22,9 @@ exports.getOrder = function (req, res) {
       if (err) {
         return res.sendStatus(500);
       }
+      if (rows.length == 0) {
+        return res.sendStatus(404);
+      }
       // check order's recipient
       if (rows[0].user_id != req.userData.id) {
         return res.sendStatus(403);
@@ -135,7 +138,7 @@ exports.postOrder = function (req, res) {
                       orderId,
                       orderItem.item_id,
                       orderItem.amount,
-                      orderItem.amount * price[0].price,
+                      price[0].price,
                     ],
                     (err, result, fields) => {
                       if (err) {
@@ -188,17 +191,19 @@ exports.getOrderItems = function (req, res) {
       if (rows[0].user_id != req.userData.id) {
         return res.sendStatus(403);
       }
-    }
-  );
-  mysql.query(
-    'SELECT * FROM order_items WHERE order_id = ?',
-    req.params.id,
-    (err, rows, fields) => {
-      if(err)
-      {
-        return res.sendStatus(500);
-      }
-      res.json(rows);
+
+      mysql.query(
+        'SELECT order_id, item_id, name AS item_name, amount, order_items.price FROM order_items INNER JOIN items ON (order_items.item_id = items.id) WHERE order_id = ?',
+        req.params.id,
+        (err, rows, fields) => {
+          if (err) {
+            res.sendStatus(500);
+            throw err;
+          }
+          
+          res.json(rows);
+        }
+      );
     }
   );
 };
