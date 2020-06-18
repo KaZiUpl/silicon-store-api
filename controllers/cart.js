@@ -1,7 +1,41 @@
 var mysql = require('../config/mysql');
 const { validationResult } = require('express-validator');
 
-exports.patchCartItem = function (req, res) {
+exports.addCartItem = function (req, res) {
+  //input error handling
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({ errors: errors.array() });
+  }
+
+  mysql.query(
+    'SELECT item_id FROM cart_items WHERE user_id = ? AND item_id = ?',
+    [req.userData.id, req.body.item_id],
+    (err, rows) => {
+      if (err) {
+        return res.sendStatus(500);
+      }
+      //if item is already in a cart
+      if (rows.length > 0) {
+        res.statusMessage = 'This item is already in a cart';
+        return res.sendStatus(400);
+      }
+
+      mysql.query(
+        'INSERT INTO cart_items(user_id, item_id, amount) VALUES(?,?,1)',
+        [req.userData.id, req.body.item_id],
+        (err, rows) => {
+          if (err) {
+            return res.sendStatus(500);
+          }
+          res.sendStatus(201);
+        }
+      );
+    }
+  );
+};
+
+exports.updateCartItem = function (req, res) {
   //input error handling
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -19,6 +53,7 @@ exports.patchCartItem = function (req, res) {
       // if item is in the cart
       if (rows.length > 0) {
         let newAmount = req.body.amount;
+        // return bad request if amount < 0
         if (newAmount < 1) {
           return res.sendStatus(400);
         }
@@ -37,12 +72,12 @@ exports.patchCartItem = function (req, res) {
         // add item to the cart
         mysql.query(
           'INSERT INTO cart_items(user_id, item_id, amount) VALUES(?,?,?)',
-          [req.userData.id, req.body.item_id, 1],
+          [req.userData.id, req.body.item_id, req.body.amount],
           (err, rows, fields) => {
             if (err) {
               return res.sendStatus(500);
             }
-            return res.sendStatus(201);
+            res.sendStatus(201);
           }
         );
       }

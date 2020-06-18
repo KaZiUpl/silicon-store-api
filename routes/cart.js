@@ -6,18 +6,19 @@ var router = express.Router();
 var CartController = require('../controllers/cart');
 
 router.use(checkAuth);
-// update cart
-router.patch(
+// add item to cart
+router.post(
   '/',
-  [
-    check('item_id').exists().withMessage('Item id is required'),
-    check('amount').exists().withMessage('Amount is required'),
-    check('amount')
-      .isDecimal({ decimal_digits: 0 })
-      .withMessage('Wrong number'),
-  ],
-  CartController.patchCartItem
+  [check('item_id').exists().withMessage('Item id is required')],
+  CartController.addCartItem
 );
+// modify item in cart
+router.put('/', [
+  check('item_id').exists().withMessage('Item id is required'),
+  check('amount').exists().withMessage('Amount is required'),
+  check('amount').isDecimal({ decimal_digits: 0 }).withMessage('Wrong number'),
+], CartController.updateCartItem);
+
 // get cart
 router.get('/', CartController.getCartItems);
 // get cart item
