@@ -5,12 +5,15 @@ exports.getAllItems = function (req, res) {
   if (category) {
     // find all items connected with category or any of its descendants
     mysql.query(
-      'SELECT id, name, price, short_specification, specification, description, photo, amount FROM items INNER JOIN amounts ON (items.id = amounts.item_id) WHERE amount > 0 AND category_id IN (SELECT id FROM categories WHERE path REGEXP "^([0-9]/)*?(/[0-9]+)*$")',
+      'SELECT id, name, price, short_specification, specification, description, photo, amount FROM items INNER JOIN amounts ON (items.id = amounts.item_id) WHERE amount > 0 AND category_id IN (SELECT id FROM categories WHERE path REGEXP "^([0-9]+/)*?(/[0-9]+)*$")',
       [category],
       (err, rows, fields) => {
         if (err) {
           return res.sendStatus(500);
         }
+        rows.forEach((element) => {
+          element.photo = 'http://localhost:3000/images/' + element.photo;
+        });
         return res.status(200).json(rows);
       }
     );
@@ -50,7 +53,8 @@ exports.getItem = function (req, res) {
 
 exports.getItemComments = function (req, res) {
   mysql.query(
-    'SELECT comments.id, user_id, item_id, text, created_at, updated_at, name as author FROM comments INNER JOIN users ON (comments.user_id = users.id) WHERE item_id = ' + req.params.id,
+    'SELECT comments.id, user_id, item_id, text, created_at, updated_at, name as author FROM comments INNER JOIN users ON (comments.user_id = users.id) WHERE item_id = ' +
+      req.params.id,
     (err, rows, fields) => {
       if (err) {
         res.sendStatus(500);
