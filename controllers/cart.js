@@ -53,8 +53,9 @@ exports.updateCartItem = function (req, res) {
       // if item is in the cart
       if (rows.length > 0) {
         let newAmount = req.body.amount;
-        // return bad request if amount < 0
+        // return bad request if amount < 1
         if (newAmount < 1) {
+          res.statusMessage = 'Wrong amount, provide amount greater or equal to 1';
           return res.sendStatus(400);
         }
         // update cart item
