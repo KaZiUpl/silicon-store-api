@@ -47,6 +47,7 @@ exports.postOrder = function (req, res) {
 
   var created_at = new Date();
   var orderId;
+  var notEnough = false;
   mysql.beginTransaction(function (err) {
     if (err) {
       throw err;
@@ -64,116 +65,121 @@ exports.postOrder = function (req, res) {
         created_at,
         created_at,
       ],
-      (error, rows, fields) => {
+      (error, rows) => {
         if (error) {
           mysql.rollback(function () {
-            return res.sendStatus(500);
+            throw error;
           });
         }
         orderId = rows.insertId;
-      }
-    );
 
-    // get cart items
-    var orderItems;
-    mysql.query(
-      'SELECT * FROM cart_items WHERE user_id = ?',
-      [req.userData.id],
-      (error, rows, fields) => {
-        if (error) {
-          mysql.rollback(function () {
-            return res.sendStatus(500);
-          });
-        }
-        if (rows.length == 0) {
-          res.statusMessage = 'You have no items in the cart';
-          return res.sendStatus(400);
-        }
-        orderItems = rows;
+        // get cart items
+        var orderItems;
+        mysql.query(
+          'SELECT * FROM cart_items WHERE user_id = ?',
+          [req.userData.id],
+          (error, rows, fields) => {
+            if (error) {
+              mysql.rollback(function () {
+                throw error;
+              });
+            }
+            if (rows.length == 0) {
+              mysql.rollback(function () {});
+              return res
+                .status(400)
+                .json({ message: 'You have no items in the cart' });
+            }
+            orderItems = rows;
 
-        orderItems.forEach((orderItem) => {
-          // get storage amount
-          mysql.query(
-            'SELECT amount FROM amounts WHERE item_id = ?',
-            [orderItem.id],
-            (error, rows, fields) => {
+            orderItems.forEach((orderItem) => {
+              // get storage amount
+              mysql.query(
+                'SELECT amount FROM amounts WHERE item_id = ?',
+                [orderItem.id],
+                (error, rows, fields) => {
+                  if (error) {
+                    mysql.rollback(function () {
+                      throw error;
+                    });
+                  }
+                  // subtract ordered amount from storage
+                  mysql.query(
+                    'UPDATE amounts SET amount = amount - ? WHERE item_id = ?',
+                    [orderItem.amount, orderItem.id],
+                    (error, result, fields) => {
+                      if (error) {
+                        mysql.rollback(function () {
+                          throw error;
+                        });
+                      }
+                    }
+                  );
+                  // get price of product
+                  mysql.query(
+                    'SELECT price FROM items WHERE id = ?',
+                    [orderItem.item_id],
+                    (error, price, fields) => {
+                      if (error) {
+                        mysql.rollback(function () {
+                          throw error;
+                        });
+                      }
+                      if (price.length == 0) {
+                        return res.sendStatus(500);
+                      }
+                      // insert new row into order_items
+                      mysql.query(
+                        'INSERT INTO order_items(order_id, item_id, amount, price) VALUES(?,?,?,?)',
+                        [
+                          orderId,
+                          orderItem.item_id,
+                          orderItem.amount,
+                          price[0].price,
+                        ],
+                        (err, result, fields) => {
+                          if (err) {
+                            mysql.rollback(function () {
+                              return res.sendStatus(500);
+                            });
+                          }
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            });
+
+            if (notEnough) {
+              mysql.rollback();
+              return res
+                .status(400)
+                .json({ message: 'Not enough of some item in a storage' });
+            }
+
+            // delete cart items
+            mysql.query(
+              'DELETE FROM cart_items WHERE user_id = ?',
+              [req.userData.id],
+              (err, rows, fields) => {
+                if (error) {
+                  mysql.rollback(function () {
+                    return res.sendStatus(500);
+                  });
+                }
+              }
+            );
+            mysql.commit(function (err) {
               if (error) {
                 mysql.rollback(function () {
                   return res.sendStatus(500);
                 });
               }
-              // if there is not enough item in storage
-              if (rows.length == 0 || rows[0].amount < orderItem.amount) {
-                mysql.rollback(function () {
-                  res.statusMessage = 'Tego produktu nie ma w magazynie';
-                  return res.sendStatus(400);
-                });
-              }
-              // subtract ordered amount from storage
-              mysql.query(
-                'UPDATE amounts SET amount = amount - ? WHERE item_id = ?',
-                [orderItem.amount, orderItem.id],
-                (err, result, fields) => {
-                  if (err) {
-                    mysql.rollback(function () {
-                      return res.sendStatus(500);
-                    });
-                  }
-                }
-              );
-              // get price of product
-              mysql.query(
-                'SELECT price FROM items WHERE id = ?',
-                [orderItem.item_id],
-                (err, price, fields) => {
-                  if (err || price.length == 0) {
-                    mysql.rollback(function () {
-                      return res.sendStatus(500);
-                    });
-                  }
-                  // insert new row into order_items
-                  mysql.query(
-                    'INSERT INTO order_items(order_id, item_id, amount, price) VALUES(?,?,?,?)',
-                    [
-                      orderId,
-                      orderItem.item_id,
-                      orderItem.amount,
-                      price[0].price,
-                    ],
-                    (err, result, fields) => {
-                      if (err) {
-                        mysql.rollback(function () {
-                          return res.sendStatus(500);
-                        });
-                      }
-                    }
-                  );
-                }
-              );
-            }
-          );
-        });
-
-        // delete cart items
-        mysql.query(
-          'DELETE FROM cart_items WHERE user_id = ?',
-          [req.userData.id],
-          (err, rows, fields) => {
-            if (error) {
-              mysql.rollback(function () {
-                return res.sendStatus(500);
-              });
-            }
+            });
+            res.status(201).json();
           }
         );
-        mysql.commit(function (err) {
-          if (error) {
-            mysql.rollback(function () {
-              return res.sendStatus(500);
-            });
-          }
-        });
-        return res.status(201).json();
       }
     );
   });
@@ -200,7 +206,7 @@ exports.getOrderItems = function (req, res) {
             res.sendStatus(500);
             throw err;
           }
-          
+
           res.json(rows);
         }
       );
