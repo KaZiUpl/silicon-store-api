@@ -1,129 +1,117 @@
 var mysql = require('../config/mysql');
 const { validationResult } = require('express-validator');
 
-exports.addCartItem = function (req, res) {
+exports.addCartItem = async function (req, res) {
   //input error handling
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(422).json({ errors: errors.array() });
   }
+  try {
+    //check if item is in a cart
+    let cartItem = await mysql.query(
+      'SELECT item_id FROM cart_items WHERE user_id = ? AND item_id = ?',
+      [req.userData.id, req.body.item_id]
+    );
+    if (cartItem.length > 0) {
+      return res
+        .status(400)
+        .json({ message: 'This item is already in a cart' });
+    }
 
-  mysql.query(
-    'SELECT item_id FROM cart_items WHERE user_id = ? AND item_id = ?',
-    [req.userData.id, req.body.item_id],
-    (err, rows) => {
-      if (err) {
-        return res.sendStatus(500);
-      }
-      //if item is already in a cart
-      if (rows.length > 0) {
-        res.statusMessage = 'This item is already in a cart';
-        return res.sendStatus(400);
-      }
+    await mysql.query(
+      'INSERT INTO cart_items(user_id, item_id, amount) VALUES(?,?,1)',
+      [req.userData.id, req.body.item_id]
+    );
+    return res.status(201).json();
+  } catch (error) {
+    res.sendStatus(500);
+    throw error;
+  }
+};
 
-      mysql.query(
-        'INSERT INTO cart_items(user_id, item_id, amount) VALUES(?,?,1)',
-        [req.userData.id, req.body.item_id],
-        (err, rows) => {
-          if (err) {
-            return res.sendStatus(500);
-          }
-          res.status(201).json();
-        }
+exports.updateCartItem = async function (req, res) {
+  //input error handling
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({ errors: errors.array() });
+  }
+  try {
+    // check if item is already in the cart
+    let cartItem = await mysql.query(
+      'SELECT * from cart_items WHERE user_id = ? AND item_id = ?',
+      [req.userData.id, req.body.item_id]
+    );
+
+    // if item is in the cart
+    if (cartItem.length > 0) {
+      let newAmount = req.body.amount;
+      // return bad request if amount < 0
+      if (newAmount < 1) {
+        return res.status(400).json({ message });
+      }
+      //update cart item
+      await mysql.query(
+        'UPDATE cart_items SET amount = ? WHERE user_id = ? AND item_id = ?',
+        [newAmount, req.userData.id, req.body.item_id]
       );
-    }
-  );
-};
 
-exports.updateCartItem = function (req, res) {
-  //input error handling
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(422).json({ errors: errors.array() });
+      return res.status(200).end();
+    } else {
+      //create new cart item
+      await mysql.query(
+        'INSERT INTO cart_items(user_id, item_id, amount) VALUES(?,?,?)',
+        [req.userData.id, req.body.item_id, req.body.amount]
+      );
+
+      return res.status(201).end();
+    }
+  } catch (error) {
+    res.sendStatus(500);
+    throw error;
   }
-
-  // check if item is already in the cart
-  mysql.query(
-    'SELECT * from cart_items WHERE user_id = ? AND item_id = ?',
-    [req.userData.id, req.body.item_id],
-    (err, rows, fields) => {
-      if (err) {
-        res.sendStatus(500);
-      }
-      // if item is in the cart
-      if (rows.length > 0) {
-        let newAmount = req.body.amount;
-        // return bad request if amount < 1
-        if (newAmount < 1) {
-          res.statusMessage = 'Wrong amount, provide amount greater or equal to 1';
-          return res.sendStatus(400);
-        }
-        // update cart item
-        mysql.query(
-          'UPDATE cart_items SET amount = ? WHERE user_id = ? AND item_id = ?',
-          [newAmount, req.userData.id, req.body.item_id],
-          (err, rows, fields) => {
-            if (err) {
-              return res.sendStatus(500);
-            }
-            return res.status(200).json();
-          }
-        );
-      } else {
-        // add item to the cart
-        mysql.query(
-          'INSERT INTO cart_items(user_id, item_id, amount) VALUES(?,?,?)',
-          [req.userData.id, req.body.item_id, req.body.amount],
-          (err, rows, fields) => {
-            if (err) {
-              return res.sendStatus(500);
-            }
-            res.status(201).json();
-          }
-        );
-      }
-    }
-  );
 };
 
-exports.getCartItems = function (req, res) {
-  mysql.query(
-    'SELECT user_id, item_id, amount, name, photo, price FROM cart_items INNER JOIN items ON (items.id = cart_items.item_id) WHERE user_id = ?',
-    [req.userData.id],
-    (err, rows, fields) => {
-      if (err) {
-        return res.sendStatus(500);
-      }
-      return res.status(200).json(rows);
-    }
-  );
+exports.getCartItems = async function (req, res) {
+  try {
+    let cartItems = await mysql.query(
+      'SELECT user_id, item_id, amount, name, photo, price FROM cart_items INNER JOIN items ON (items.id = cart_items.item_id) WHERE user_id = ?',
+      req.userData.id
+    );
+
+    return res.status(200).json(cartItems);
+  } catch (error) {
+    res.sendStatus(500);
+    throw error;
+  }
 };
 
-exports.getCartItem = function (req, res) {
-  mysql.query(
-    'SELECT * FROM cart_items WHERE user_id = ? AND item_id = ?',
-    [req.userData.id, req.params.item_id],
-    (err, rows, fields) => {
-      if (err) {
-        return res.sendStatus(500);
-      }
-      if (rows.length == 0) {
-        return res.sendStatus(404);
-      }
-      return res.status(200).json(rows[0]);
+exports.getCartItem = async function (req, res) {
+  try {
+    let cartItem = await mysql.query(
+      'SELECT * FROM cart_items WHERE user_id = ? AND item_id = ?',
+      [req.userData.id, req.params.item_id]
+    );
+    if (cartItem.length == 0) {
+      return res.sendStatus(404);
     }
-  );
+    return res.status(200).json(cartItem[0]);
+  } catch (error) {
+    res.sendStatus(500);
+    throw error;
+  }
 };
 
-exports.deleteCartItem = function (req, res) {
-  mysql.query(
-    'DELETE FROM cart_items WHERE user_id = ? AND item_id = ?',
-    [req.userData.id, req.params.item_id],
-    (err, rows, fields) => {
-      if (err) {
-        return res.sendStatus(500);
-      }
-    res.status(200).json();
-    }
-  );
+exports.deleteCartItem = async function (req, res) {
+  try {
+    await mysql.query(
+      'DELETE FROM cart_items WHERE user_id = ? AND item_id = ?',
+      [req.userData.id, req.params.item_id]
+    );
+
+    return res.status(200).end();
+  } catch (error) {
+    res.sendStatus(500);
+    throw error;
+  }
 };

@@ -4,94 +4,124 @@ var jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 var { v4: uuidv4 } = require('uuid');
 
-exports.register = function (req, res) {
+exports.register = async function (req, res) {
   //input error handling
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(422).json({ errors: errors.array() });
   }
 
-  var userId;
-  // check whether email is taken
-  mysql.query(
-    'SELECT email FROM users where email = ?',
-    [req.body.email],
-    (err, rows, fields) => {
-      if (err) {
-        return res.sendStatus(500);
-      }
-      if (rows.length > 0) {
-        return res.status(400).json({
-          message: 'Mail taken',
-        });
-      }
-
-      // check whether name is taken
-      mysql.query(
-        'SELECT name FROM users where name = ?',
-        [req.body.name],
-        (err, rows, fields) => {
-          if (err) {
-            return res.status(500);
-          }
-          if (rows.length > 0) {
-            return res.status(400).json({
-              message: 'Name taken',
-            });
-          }
-
-          mysql.beginTransaction(function (errBegin) {
-            if (errBegin) {
-              return res.sendStatus(500);
-            }
-            // create password hash and add new user to database
-            bcrypt.hash(req.body.password, 10, (err, hash) => {
-              if (err) {
-                mysql.rollback(function () {
-                  return res.sendStatus(500);
-                });
-              } else {
-                // create user
-                mysql.query(
-                  'INSERT INTO users(email, name, password, role) VALUES(?,?,?,?)',
-                  [req.body.email, req.body.name, hash, 'Customer'],
-                  (err, rows, fields) => {
-                    if (err) {
-                      mysql.rollback(function () {
-                        return res.sendStatus(500);
-                      });
-                    }
-                  }
-                );
-              }
-            });
-
-            mysql.commit(function (err) {
-              if (err) {
-                return res.sendStatus(500);
-              }
-            });
-            res.sendStatus(201);
-          });
-        }
-      );
+  try {
+    // check whether email is taken
+    let userMail = await mysql.query(
+      'SELECT email FROM users where email = ?',
+      [req.body.email]
+    );
+    if (userMail.length > 0) {
+      return res.status(400).json({
+        message: 'Mail taken',
+      });
     }
-  );
+    // check whether name is taken
+    let userName = await mysql.query('SELECT name FROM users where name = ?', [
+      req.body.name,
+    ]);
+    if (userName.length > 0) {
+      return res.status(400).json({
+        message: 'Name taken',
+      });
+    }
+
+    try {
+      mysql.beginTransaction();
+
+      let passwordHash = await bcrypt.hash(req.body.password, 10);
+      // create user
+      await mysql.query(
+        'INSERT INTO users(email, name, password, role) VALUES(?,?,?,?)',
+        [req.body.email, req.body.name, passwordHash, 'Customer']
+      );
+
+      mysql.commit();
+      return res.status(201).end();
+    } catch (error) {
+      mysql.rollback();
+      throw error;
+    }
+  } catch (error) {
+    res.sendStatus(500);
+    throw error;
+  }
 };
 
-exports.login = function (req, res) {
+exports.login = async function (req, res) {
   //input error handling
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(422).json({ errors: errors.array() });
   }
 
+  try {
+    //check provided credentials
+    let user = await mysql.query(
+      'SELECT id, email, password, role, api_key FROM users WHERE email = ?',
+      [req.body.email]
+    );
+    // user doesn't exists
+    if (user.length == 0) {
+      return res.status(401).json({
+        message: 'Bad credentials',
+      });
+    }
+    //login data correct
+    user = user[0];
+    let passwordMatch = await bcrypt.compare(req.body.password, user.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ message: 'Bad credentials' });
+    }
+    //success login
+    //check for existing api key
+    let apiKey = await mysql.query(
+      'SELECT api_key FROM users WHERE id = ?',
+      user.id
+    );
+    if (apiKey.length == 0) {
+      return res.sendStatus(500);
+    }
+
+    //if key exists
+    if (apiKey[0].api_key != '') {
+      return res.status(200).json({
+        api_key: apiKey[0].api_key,
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      });
+    } else {
+      // create api key
+      const apiKey = uuidv4();
+      await mysql.query('UPDATE users SET api_key = ? WHERE id = ?', [
+        apiKey,
+        user.id,
+      ]);
+
+      res.status(200).json({
+        api_key: apiKey,
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      });
+    }
+  } catch (error) {
+    res.sendStatus(500);
+    throw error;
+  }
   // check provided credentials
   mysql.query(
     'SELECT id, email, password, role, api_key FROM users WHERE email = ?',
     [req.body.email],
     (err, rows, fields) => {
-      if(err) {
+      if (err) {
         return res.sendStatus(500);
       }
       // user doesn't exists
@@ -124,14 +154,12 @@ exports.login = function (req, res) {
                   }
                   //if key exists
                   if (rows[0].api_key != '') {
-                    return res
-                      .status(200)
-                      .json({
-                        api_key: rows[0].api_key,
-                        id: user.id,
-                        email: user.email,
-                        role: user.role,
-                      });
+                    return res.status(200).json({
+                      api_key: rows[0].api_key,
+                      id: user.id,
+                      email: user.email,
+                      role: user.role,
+                    });
                   } else {
                     // create api key
                     const apiKey = uuidv4();
@@ -142,14 +170,12 @@ exports.login = function (req, res) {
                         if (err || rows.length == 0) {
                           return res.sendStatus(500);
                         }
-                        res
-                          .status(200)
-                          .json({
-                            api_key: apiKey,
-                            id: user.id,
-                            email: user.email,
-                            role: user.role,
-                          });
+                        res.status(200).json({
+                          api_key: apiKey,
+                          id: user.id,
+                          email: user.email,
+                          role: user.role,
+                        });
                       }
                     );
                   }
@@ -163,38 +189,39 @@ exports.login = function (req, res) {
   );
 };
 
-exports.logout = function (req, res) {
+exports.logout = async function (req, res) {
   //input error handling
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(422).json({ errors: errors.array() });
   }
 
-  // delete api key from a database
-  mysql.query(
-    'UPDATE users SET api_key = "" WHERE api_key = ?',
-    req.userData.api_key,
-    (err, rows, fields) => {
-      if (err) {
-        return res.sendStatus(500);
-      }
-      res.status(200).json();
-    }
-  );
+  try {
+    // delete api key from a database
+    await mysql.query(
+      'UPDATE users SET api_key = "" WHERE api_key = ?',
+      req.userData.api_key
+    );
+    res.status(200).json();
+  } catch (error) {
+    res.sendStatus(500);
+    throw error;
+  }
 };
 
-exports.getProfile = function (req, res) {
-  mysql.query(
-    'SELECT id, email, name FROM users WHERE id = ?',
-    [req.userData.id],
-    (err, rows, fields) => {
-      if (err) {
-        return res.sendStatus(500);
-      }
-      if (rows.length == 0) {
-        return res.sendStatus(404);
-      }
-      res.status(200).json(rows[[0]]);
+exports.getProfile = async function (req, res) {
+  try {
+    let profile = await mysql.query(
+      'SELECT id, email, name FROM users WHERE id = ?',
+      [req.userData.id]
+    );
+    if (profile.length == 0) {
+      return res.sendStatus(404);
     }
-  );
+
+    return res.status(200).json(profile[0]);
+  } catch (error) {
+    res.sendStatus(500);
+    throw error;
+  }
 };
