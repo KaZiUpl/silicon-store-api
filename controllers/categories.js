@@ -1,64 +1,66 @@
 var mysql = require('../config/mysql');
 
-exports.getAllCategories = function (req, res) {
-  mysql.query('SELECT * FROM categories', (err, rows, fields) => {
-    if (err) {
-      return res.sendStatus(500);
-    }
-    return res.status(200).json(rows);
-  });
+exports.getAllCategories = async function (req, res) {
+  try {
+    let categories = await mysql.query('SELECT * FROM categories');
+
+    return res.status(200).json(categories);
+  } catch (error) {
+    res.sendStatus(500);
+    throw error;
+  }
 };
 
-exports.getMainCategories = function (req, res) {
-  mysql.query(
-    'SELECT * FROM categories WHERE parent_id IS NULL',
-    (err, rows, fields) => {
-      if (err) {
-        return res.sendStatus(500);
-      }
-      return res.status(200).json(rows);
-    }
-  );
+exports.getMainCategories = async function (req, res) {
+  try {
+    let mainCategories = await mysql.query(
+    'SELECT * FROM categories WHERE parent_id IS NULL');
+
+    return res.status(200).json(mainCategories);
+  } catch (error) {
+    res.sendStatus(500);
+    throw err;
+  }
 };
 
-exports.getChildrenCategories = function (req, res) {
-  mysql.query(
-    'SELECT * FROM categories WHERE parent_id=' + req.params.id,
-    (err, rows, fields) => {
-      if (err) {
-        return res.sendStatus(500);
-      }
-      return res.status(200).json(rows);
-    }
-  );
+exports.getChildrenCategories = async function (req, res) {
+  try {
+    let childrenCategories = await mysql.query(
+    'SELECT * FROM categories WHERE parent_id=' + req.params.id);
+
+    return res.status(200).json(childrenCategories);
+  } catch (error) {
+    res.sendStatus(500);
+    throw err;
+  }
 };
 
-exports.getCategoryBreadcrumbs = function (req, res) {
-  mysql.query(
+exports.getCategoryBreadcrumbs = async function (req, res) {
+  try {
+    let categoryBreadcrumbs = mysql.query(
     'SELECT * FROM categories WHERE FIND_IN_SET(categories.id, (SELECT REPLACE((SELECT categories.path FROM categories WHERE categories.id = ?), "/",",")))',
-    req.params.id,
-    (err, rows) => {
-      if (err) {
-        return res.sendStatus(500);
-      }
-      res.status(200).json(rows);
-    }
-  );
+    req.params.id);
+
+    return res.status(200).json(categoryBreadcrumbs);
+  } catch (error) {
+    res.sendStatus(500);
+    throw err;
+  }
 };
 
-exports.getCategory = function (req, res) {
-  mysql.query(
-    'SELECT * FROM categories WHERE id = ?',
-    req.params.id,
-    (err, rows, fields) => {
-      if (err) {
-        return res.sendStatus(500);
-      }
-      if (rows.length > 0) {
-        return res.status(200).json(rows[0]);
-      } else {
+exports.getCategory = async function (req, res) {
+  try {
+    let category = await mysql.query(
+      'SELECT * FROM categories WHERE id = ?',
+      req.params.id);
+
+      if(category.length == 0) {
         return res.sendStatus(404);
       }
-    }
-  );
+
+      return res.status(200).json(category);
+  } catch (error) {
+    res.sendStatus(500);
+    throw err;
+  }
 };
