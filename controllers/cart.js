@@ -28,7 +28,7 @@ exports.addCartItem = function (req, res) {
           if (err) {
             return res.sendStatus(500);
           }
-          res.sendStatus(201);
+          res.status(201).json();
         }
       );
     }
@@ -65,7 +65,7 @@ exports.updateCartItem = function (req, res) {
             if (err) {
               return res.sendStatus(500);
             }
-            return res.sendStatus(200);
+            return res.status(200).json();
           }
         );
       } else {
@@ -77,7 +77,7 @@ exports.updateCartItem = function (req, res) {
             if (err) {
               return res.sendStatus(500);
             }
-            res.sendStatus(201);
+            res.status(201).json();
           }
         );
       }
@@ -87,7 +87,7 @@ exports.updateCartItem = function (req, res) {
 
 exports.getCartItems = function (req, res) {
   mysql.query(
-    'SELECT * FROM cart_items WHERE user_id = ?',
+    'SELECT user_id, item_id, amount, name, photo, price FROM cart_items INNER JOIN items ON (items.id = cart_items.item_id) WHERE user_id = ?',
     [req.userData.id],
     (err, rows, fields) => {
       if (err) {
@@ -122,7 +122,7 @@ exports.deleteCartItem = function (req, res) {
       if (err) {
         return res.sendStatus(500);
       }
-      return res.sendStatus(200);
+    res.status(200).json();
     }
   );
 };

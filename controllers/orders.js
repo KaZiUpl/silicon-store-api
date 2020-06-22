@@ -106,7 +106,7 @@ exports.postOrder = function (req, res) {
               if (rows.length == 0 || rows[0].amount < orderItem.amount) {
                 mysql.rollback(function () {
                   res.statusMessage = 'Tego produktu nie ma w magazynie';
-                  return res.status(400);
+                  return res.sendStatus(400);
                 });
               }
               // subtract ordered amount from storage
@@ -173,7 +173,7 @@ exports.postOrder = function (req, res) {
             });
           }
         });
-        return res.sendStatus(201);
+        return res.status(201).json();
       }
     );
   });
