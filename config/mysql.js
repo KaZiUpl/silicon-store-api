@@ -1,7 +1,6 @@
 const mysql = require('mysql');
 const util = require('util');
 
-
 const config = {
   connectionLimit: 10,
   host: process.env.DB_HOST,
@@ -11,27 +10,23 @@ const config = {
   password: process.env.DB_PASSWORD,
 };
 
-
 function makeDb(config) {
-  const connection = mysql.createPool(config);
+  const connection = mysql.createConnection(config);
 
   return {
     query(sql, args) {
-      return util.promisify(connection.query).call(connection,sql, args);
+      return util.promisify(connection.query).call(connection, sql, args);
     },
     beginTransaction() {
-      return util.promisify( connection.beginTransaction )
-        .call( connection );
+      return util.promisify(connection.beginTransaction).call(connection);
     },
     commit() {
-      return util.promisify( connection.commit )
-        .call( connection );
+      return util.promisify(connection.commit).call(connection);
     },
     rollback() {
-      return util.promisify( connection.rollback )
-        .call( connection );
+      return util.promisify(connection.rollback).call(connection);
     },
-  }
+  };
 }
 
 const db = makeDb(config);
