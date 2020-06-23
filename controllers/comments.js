@@ -21,13 +21,15 @@ exports.newComment = async function (req, res) {
         .status(400)
         .json({ message: 'You already commented on this product' });
     }
-    await mysql.query(
+    let newComment = await mysql.query(
       'INSERT INTO comments(item_id, user_id, text, created_at, updated_at) VALUES(?,?,?,?,?)',
       [req.body.item_id, req.userData.id, req.body.text, created_at, created_at]
     );
     await mysql.commit();
 
-    return res.status(201).json({ message: 'Comment added' });
+    return res
+      .status(201)
+      .json({ message: 'Comment added', id: newComment.insertId });
   } catch (error) {
     await mysql.rollback();
     res.sendStatus(500);
