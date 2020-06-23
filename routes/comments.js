@@ -15,4 +15,13 @@ router.post(
   CommentsController.newComment
 );
 
+router.put('/:id', checkAuth, [
+  check('text').exists().withMessage('Text is required'),
+  CommentsController.modifyComment
+]);
+
+router.get('/:id', CommentsController.getComment);
+
+router.delete('/:id', checkAuth, CommentsController.deleteComment);
+
 module.exports = router;

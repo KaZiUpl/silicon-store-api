@@ -34,3 +34,68 @@ exports.newComment = async function (req, res) {
     throw error;
   }
 };
+
+exports.modifyComment = async function (req, res) {
+  try {
+    let comment = await mysql.query(
+      'SELECT * FROM comments WHERE id = ?',
+      req.params.id
+    );
+    if (comment.length == 0) {
+      return res.status(400).json({ message: 'No comments with provided id' });
+    }
+    if (comment[0].user_id != req.userData.id) {
+      return res.sendStatus(403);
+    }
+    await mysql.query(
+      'UPDATE comments SET text = ?, updated_at = ? WHERE id = ?',
+      [req.body.text, new Date(), req.params.id]
+    );
+
+    return res.status(200).end();
+  } catch (error) {
+    res.sendStatus(500);
+    throw error;
+  }
+};
+
+exports.getComment = async function (req, res) {
+  try {
+    let comment = await mysql.query(
+      'SELECT * FROM comments WHERE id = ?',
+      req.params.id
+    );
+    if (comment.length == 0) {
+      return res.sendStatus(404);
+    }
+
+    return res.status(200).json(comment[0]);
+  } catch (error) {
+    res.sendStatus(500);
+    throw error;
+  }
+};
+
+exports.deleteComment = async function (req, res) {
+  try {
+    let comment = await mysql.query(
+      'SELECT * FROM comments WHERE id = ?',
+      req.params.id
+    );
+    if (comment.length == 0) {
+      return res.status(400).json({ message: 'No comments with provided id' });
+    }
+    if (comment[0].user_id != req.userData.id) {
+      return res.sendStatus(403);
+    }
+    let result = await mysql.query(
+      'DELETE FROM comments WHERE id = ?',
+      req.params.id
+    );
+
+    return res.status(200).end();
+  } catch (error) {
+    res.sendStatus(500);
+    throw error;
+  }
+};
