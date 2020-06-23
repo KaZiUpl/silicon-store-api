@@ -37,7 +37,7 @@ exports.getItem = async function (req, res) {
     }
 
     item[0].photo = 'http://localhost:3000/images/' + item[0].photo;
-    return res.status(200).json(item);
+    return res.status(200).json(item[0]);
   } catch (error) {
     res.sendStatus(500);
     throw error;
