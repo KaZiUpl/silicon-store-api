@@ -48,7 +48,7 @@ exports.updateCartItem = async function (req, res) {
       let newAmount = req.body.amount;
       // return bad request if amount < 0
       if (newAmount < 1) {
-        return res.status(400).json({ message });
+        return res.status(400).json({ message: 'You cannot order amount lower than 1' });
       }
       //update cart item
       await mysql.query(
