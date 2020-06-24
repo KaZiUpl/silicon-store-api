@@ -45,7 +45,7 @@ exports.postOrder = async function (req, res) {
     await mysql.beginTransaction();
 
     let created_at = new Date();
-
+    let orderValue = 0;
     let newOrder = await mysql.query(
       'INSERT INTO orders(user_id, name, surname, address, city, postal_code, created_at, updated_at) VALUES(?,?,?,?,?,?,?,?)',
       [
@@ -63,7 +63,7 @@ exports.postOrder = async function (req, res) {
 
     // get cart items
     var orderItems = await mysql.query(
-      'SELECT * FROM cart_items WHERE user_id = ?',
+      'SELECT user_id, item_id, amount, price FROM cart_items INNER JOIN items ON cart_items.item_id = items.id WHERE user_id = ?',
       req.userData.id
     );
 
@@ -73,10 +73,9 @@ exports.postOrder = async function (req, res) {
     }
     //check for availability of item
     for (const orderItem of orderItems) {
-      let storageAmount;
-
+      orderValue += orderItem.amount * orderItem.price;
       // get storage amount
-      storageAmount = await mysql.query(
+      let storageAmount = await mysql.query(
         'SELECT amount FROM amounts WHERE item_id = ?',
         orderItem.item_id
       );
@@ -108,6 +107,12 @@ exports.postOrder = async function (req, res) {
     // delete cart items
     await mysql.query('DELETE FROM cart_items WHERE user_id = ?', [
       req.userData.id,
+    ]);
+
+    //update orderValue
+    await mysql.query('UPDATE orders SET value = ? WHERE id = ?', [
+      orderValue,
+      orderId,
     ]);
 
     await mysql.commit();
