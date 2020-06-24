@@ -27,9 +27,7 @@ router.post(
 );
 
 //user logout
-router.post('/logout', checkAuth,
-  UsersController.logout
-)
+router.post('/logout', checkAuth, UsersController.logout);
 
 // get user profile
 router.get('/profile', checkAuth, UsersController.getProfile);

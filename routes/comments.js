@@ -17,7 +17,7 @@ router.post(
 
 router.put('/:id', checkAuth, [
   check('text').exists().withMessage('Text is required'),
-  CommentsController.modifyComment
+  CommentsController.modifyComment,
 ]);
 
 router.get('/:id', CommentsController.getComment);

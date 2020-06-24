@@ -13,11 +13,17 @@ router.post(
   CartController.addCartItem
 );
 // modify item in cart
-router.put('/', [
-  check('item_id').exists().withMessage('Item id is required'),
-  check('amount').exists().withMessage('Amount is required'),
-  check('amount').isDecimal({ decimal_digits: 0 }).withMessage('Wrong number'),
-], CartController.updateCartItem);
+router.put(
+  '/',
+  [
+    check('item_id').exists().withMessage('Item id is required'),
+    check('amount').exists().withMessage('Amount is required'),
+    check('amount')
+      .isDecimal({ decimal_digits: 0 })
+      .withMessage('Wrong number'),
+  ],
+  CartController.updateCartItem
+);
 
 // get cart
 router.get('/', CartController.getCartItems);

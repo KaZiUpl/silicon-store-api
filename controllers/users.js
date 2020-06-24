@@ -33,7 +33,7 @@ exports.register = async function (req, res) {
     }
 
     try {
-      mysql.beginTransaction();
+      await mysql.beginTransaction();
 
       let passwordHash = await bcrypt.hash(req.body.password, 10);
       // create user
@@ -42,10 +42,10 @@ exports.register = async function (req, res) {
         [req.body.email, req.body.name, passwordHash, 'Customer']
       );
 
-      mysql.commit();
+      await mysql.commit();
       return res.status(201).end();
     } catch (error) {
-      mysql.rollback();
+      await mysql.rollback();
       throw error;
     }
   } catch (error) {
@@ -116,77 +116,6 @@ exports.login = async function (req, res) {
     res.sendStatus(500);
     throw error;
   }
-  // check provided credentials
-  mysql.query(
-    'SELECT id, email, password, role, api_key FROM users WHERE email = ?',
-    [req.body.email],
-    (err, rows, fields) => {
-      if (err) {
-        return res.sendStatus(500);
-      }
-      // user doesn't exists
-      if (rows.length < 1) {
-        return res.status(401).json({
-          message: 'Bad credentials',
-        });
-      } else {
-        //login data correct
-        user = rows[0];
-
-        // compare passwords
-        bcrypt.compare(req.body.password, user.password, (err, result) => {
-          // handle incorrect password
-          if (err || result == false) {
-            return res.status(401).json({
-              message: 'Bad credentials',
-            });
-          } else {
-            console.log(result);
-            //success login
-            if (result) {
-              //check for existing api key
-              mysql.query(
-                'SELECT api_key FROM users WHERE id = ?',
-                user.id,
-                (err, rows) => {
-                  if (err || rows.length == 0) {
-                    return res.sendStatus(500);
-                  }
-                  //if key exists
-                  if (rows[0].api_key != '') {
-                    return res.status(200).json({
-                      api_key: rows[0].api_key,
-                      id: user.id,
-                      email: user.email,
-                      role: user.role,
-                    });
-                  } else {
-                    // create api key
-                    const apiKey = uuidv4();
-                    mysql.query(
-                      'UPDATE users SET api_key = ? WHERE id = ?',
-                      [apiKey, user.id],
-                      (err, rows) => {
-                        if (err || rows.length == 0) {
-                          return res.sendStatus(500);
-                        }
-                        res.status(200).json({
-                          api_key: apiKey,
-                          id: user.id,
-                          email: user.email,
-                          role: user.role,
-                        });
-                      }
-                    );
-                  }
-                }
-              );
-            }
-          }
-        });
-      }
-    }
-  );
 };
 
 exports.logout = async function (req, res) {
