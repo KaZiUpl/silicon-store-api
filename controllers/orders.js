@@ -3,9 +3,10 @@ const { validationResult } = require('express-validator');
 
 exports.getAll = async function (req, res) {
   try {
-    let orders = await mysql.query('SELECT * FROM orders WHERE user_id = ?', [
-      req.userData.id,
-    ]);
+    let orders = await mysql.query(
+      'SELECT * FROM orders WHERE user_id = ? ORDER BY updated_at DESC',
+      [req.userData.id]
+    );
 
     return res.status(200).json(orders);
   } catch (error) {
