@@ -3,6 +3,7 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var morgan = require('morgan');
 var cors = require('cors');
+var mysql = require('./config/mysql');
 
 var app = express();
 var port = process.env.PORT || 3000;
@@ -42,5 +43,21 @@ app.use((error, req, res, next) => {
 });
 
 app.listen(port, () => {
-  console.log('Server is up and listening on port ' + port + '...');
+  console.log(
+    new Date().toString() +
+      ': server is up and listening on port ' +
+      port +
+      '...'
+  );
+  //every 10 minuts the query is sent to a database in order to maintain connection
+  setInterval(async () => {
+    try {
+      await mysql.query('SELECT 1');
+      console.log(
+        new Date().toString() + ': sent query to maintain database connection'
+      );
+    } catch (error) {
+      throw error;
+    }
+  }, 600000);
 });
