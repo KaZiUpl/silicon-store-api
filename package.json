@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "Simple REST API for online store",
   "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KaZiUpl/silicon-store-api.git"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -18,6 +22,7 @@
     "jsonwebtoken": "^8.5.1",
     "morgan": "^1.10.0",
     "mysql": "^2.18.1",
+    "nodemon": "^2.0.4",
     "util": "^0.12.3",
     "uuid": "^8.1.0"
   }
