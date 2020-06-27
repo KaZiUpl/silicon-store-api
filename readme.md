@@ -9,11 +9,7 @@ This is a simple REST API for online store created using [node.js](https://nodej
 ```
 npm install
 ```
-## Development and production servers
-To start development server:
-```
-nodemon app.js
-```
+## Server
 To start production server:
 ```
 node app.js
