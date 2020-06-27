@@ -69,15 +69,15 @@ exports.login = async function (req, res) {
     );
     // user doesn't exists
     if (user.length == 0) {
-      return res.status(401).json({
-        message: 'Bad credentials',
+      return res.status(400).json({
+        message: 'Wrong credentials',
       });
     }
     //login data correct
     user = user[0];
     let passwordMatch = await bcrypt.compare(req.body.password, user.password);
     if (!passwordMatch) {
-      return res.status(401).json({ message: 'Bad credentials' });
+      return res.status(400).json({ message: 'Wrong credentials' });
     }
     //success login
     //check for existing api key
