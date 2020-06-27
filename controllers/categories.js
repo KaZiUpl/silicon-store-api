@@ -26,6 +26,14 @@ exports.getMainCategories = async function (req, res) {
 
 exports.getChildrenCategories = async function (req, res) {
   try {
+    let category = await mysql.query(
+      'SELECT id FROM categories WHERE id = ?',
+      req.params.id
+    ); 
+    if (category.length == 0) {
+      return res.status(404).json({ message: 'No such category' });
+    }
+
     let childrenCategories = await mysql.query(
       'SELECT * FROM categories WHERE parent_id=' + req.params.id
     );
@@ -39,6 +47,14 @@ exports.getChildrenCategories = async function (req, res) {
 
 exports.getCategoryBreadcrumbs = async function (req, res) {
   try {
+    let category = await mysql.query(
+      'SELECT id FROM categories WHERE id = ?',
+      req.params.id
+    ); 
+    if (category.length == 0) {
+      return res.status(404).json({ message: 'No such category' });
+    }
+    
     let categoryBreadcrumbs = await mysql.query(
       'SELECT * FROM categories WHERE FIND_IN_SET(categories.id, (SELECT REPLACE((SELECT categories.path FROM categories WHERE categories.id = ?), "/",",")))',
       req.params.id

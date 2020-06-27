@@ -1,14 +1,21 @@
 var mysql = require('../config/mysql');
 
 exports.getAllItems = async function (req, res) {
-  const category = parseInt(req.query.category);
+  const categoryId = parseInt(req.query.category);  
   try {
     let items;
-    if (category) {
+    if (categoryId) {
+      let category = await mysql.query(
+        'SELECT id FROM categories WHERE id = ?',
+        categoryId
+      );     
+      if (category.length == 0) {
+        return res.status(404).json({ message: 'No such category' });
+      }
       // find all items connected with category or any of its descendants
       items = await mysql.query(
         'SELECT id, category_id, name, price, short_specification, specification, description, photo, amount FROM items INNER JOIN amounts ON (items.id = amounts.item_id) WHERE amount > 0 AND category_id IN (SELECT id FROM categories WHERE path REGEXP "^([0-9]+/)*?(/[0-9]+)*$")',
-        category
+        categoryId
       );
     } else {
       // get all items
