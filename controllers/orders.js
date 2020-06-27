@@ -90,11 +90,11 @@ exports.postOrder = async function (req, res) {
           item_id: orderItem.item_id,
         });
       }
-
+      
       // subtract ordered amount from storage
       await mysql.query(
         'UPDATE amounts SET amount = amount - ? WHERE item_id = ?',
-        [orderItem.amount, orderItem.id]
+        [orderItem.amount, orderItem.item_id]
       );
 
       // insert new row into order_items

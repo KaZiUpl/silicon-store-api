@@ -2,7 +2,7 @@
   "name": "silicon-store-api",
   "version": "1.0.0",
   "description": "Simple REST API for online store",
-  "main": "index.js",
+  "main": "app.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/KaZiUpl/silicon-store-api.git"
