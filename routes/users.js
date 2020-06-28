@@ -9,7 +9,7 @@ var UsersController = require('../controllers/users');
 router.post(
   '/',
   [
-    check('email').isEmail().withMessage('Invalid email'),
+    check('email').isEmail({require_tld: false}).withMessage('Invalid email'),
     check('name').exists().withMessage('Name is required'),
     check('password').exists().withMessage('Password is required'),
   ],
@@ -20,7 +20,7 @@ router.post(
 router.post(
   '/token',
   [
-    check('email').isEmail().withMessage('Invalid email'),
+    check('email').isEmail({require_tld: false}).withMessage('Invalid email'),
     check('password').exists().withMessage('Password is required'),
   ],
   UsersController.login
